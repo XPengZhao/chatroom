@@ -10,6 +10,7 @@
 
 int StartServer(void);
 void *recv_data(void *fd);
+void broadcastmsg(int fd, char recv_buf[]);
 
 #define PORT 8888
 #define BACKLOG 10

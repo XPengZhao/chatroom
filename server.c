@@ -1,5 +1,96 @@
 #include "server.h"
 
+/*聊天室成员信息*/
+typedef struct Member{
+    char name[100];
+    char password[100];
+    int sockfd;
+    struct Member *next;
+} Member;
+
+/*聊天室成员链表*/
+typedef struct Room{
+    Member *head;
+    int n;
+}Room;
+
+Room room1={ NULL,0 };
+
+/**
+  * @brief 创建结点
+  * @param name-->姓名，pwd-->密码，sockfd-->客户端Socket描述符
+  * @retval 该客户的成员信息
+  * @details None
+  */
+Member *CreateNode(char name[], char pwd[], int sockfd)
+{
+    Member *p = (Member *)malloc(sizeof(Member));
+    strcpy(p->name,name);
+    strcpy(p->password,pwd);
+    p->sockfd = sockfd;
+    return p;
+}
+
+/**
+  * @brief 添加结点
+  * @param room-->聊天室链表;  usr-->成员信息结点
+  */
+void AddOnlineUsr(Room *room, Member *usr)
+{
+    Member *p = NULL;
+    if(room->n == 0){
+        room->head=usr;
+        room->n++;
+    }
+    else{
+        for(p = room->head; p->next != NULL; p=p->next);
+        p->next = usr;
+    }
+}
+
+/**
+  * @brief 删除结点
+  * @param room-->聊天室链表;  usr-->成员信息结点
+  */
+void DeleteOnlineUsr(Room *room, Member *usr){
+    Member *p1 = NULL, *p2 = NULL;
+    for(p1 = room->head; p1->next != NULL; p1=p1->next){
+        if(p1->sockfd == usr->sockfd)
+            break;
+        p2 = p1;
+    }
+    if( p1 == room->head){
+        room->head = p1->next;
+        free(p1);
+    }
+    else{
+        p2->next = p1->next;
+        free(p1);
+    }
+}
+
+/**
+  * @brief 由姓名查找聊天室成员
+  * @param name-->成员姓名指针
+  * @
+  */
+Member *searchbyname(char *name)
+{
+
+}
+
+
+void GetUserInfo(char *name, char *pwd, int client_sockfd)
+{
+    char send_buf[MAXDATASIZE]={'\0'};
+    strcpy(send_buf, "name?");
+    send(client_sockfd, send_buf, sizeof(send_buf), 0);
+    recv(client_sockfd, name, MAXDATASIZE, 0);
+    strcpy(send_buf, "password?");
+    send(client_sockfd, send_buf, sizeof(send_buf), 0);
+    recv(client_sockfd, pwd, MAXDATASIZE, 0);
+}
+
 /**
   * @brief 启动服务器端服务，等待客户端连接
   * @param None
@@ -19,7 +110,6 @@ int StartServer(void)
     serverfd = socket(AF_INET, SOCK_STREAM, 0);  //创建一个socket描述符
     printf("serverfd=%d\n", serverfd);
 
-    //serveraddr用来记录给定的IP和port信息
     bzero(&serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_port = htons(PORT); 
@@ -39,6 +129,11 @@ int StartServer(void)
         clientfd = (int *)malloc(sizeof(int));
         //accept函数从listen函数维护的监听队列里取一个客户连接请求处理
         *clientfd = accept(serverfd, (struct sockaddr*)&clientaddr, &client_len);
+        
+        /*
+         * 此处进行用户身份验证
+         * */
+
         if(*clientfd!=-1){
             printf("\n=====================客户端链接成功=====================\n");
             printf("IP = %s:PORT = %d\n", inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
@@ -65,12 +160,21 @@ int StartServer(void)
   */
 void *recv_data(void *fd){
     int client_sockfd;
-    char buf[MAXDATASIZE];
+    char recv_buf[MAXDATASIZE] = {'\0'}, send_buf[MAXDATASIZE] = {'\0'};
     client_sockfd=*(int *)fd;
+    char name[MAXDATASIZE] = {'\0'}, pwd[MAXDATASIZE] = {'\0'};
+    Member *usr = NULL;
+    strcpy(send_buf,"are you new?\n");    
+    send(client_sockfd, send_buf, sizeof(send_buf), 0);
+
+    GetUserInfo(name, pwd, client_sockfd);
+    usr = CreateNode(name, pwd, client_sockfd);
+    AddOnlineUsr(&room1, usr);
 
     while(1){
-        memset(buf, '\0', MAXDATASIZE/sizeof (char));
-        int recv_length = recv(client_sockfd, buf, MAXDATASIZE/sizeof (char), 0);
+        memset(recv_buf, '\0', MAXDATASIZE/sizeof (char));
+        //接收缓冲区中没有数据或者协议正在接收数据，那么recv就一直等待，直到协议把数据接收完毕
+        int recv_length = recv(client_sockfd, recv_buf, sizeof (recv_buf), 0);
         if(recv_length == 0)
         {
             printf("client has closed!\n");
@@ -81,24 +185,42 @@ void *recv_data(void *fd){
              exit(EXIT_FAILURE); 
         }
 
-        if(strcmp(buf,"exit") == 0){
+        if(strcmp(recv_buf,"exit") == 0){
             break;
         }
  
-        printf("client say[%d]: ", recv_length);
-        fputs(buf, stdout);
-        //memset(buf, '\0', MAXDATASIZE/sizeof (char));
-        //printf("input: ");
-        //fgets(buf, sizeof(buf), stdin);
-        //send(client_sockfd, buf, recv_length, 0);
+        printf("client[%d] say: ", client_sockfd);
+        broadcastmsg(client_sockfd,recv_buf);
+        fputs(recv_buf, stdout);
+        fflush(stdout);
+        //unix上标准输入输出都是带有缓存的,当遇到行刷新标志或者该缓存已满的情况下，才会把缓存的数据显示到终端设备上。
+        //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
+        //操作系统为减少 IO操作 所以设置了缓冲区.  等缓冲区满了再去操作IO. 这样是为了提高效率。
+        //fgets(recv_buf, sizeof(buf), stdin);
+        //send(client_sockfd, recv_buf, recv_length, 0);
     }
     close(client_sockfd);
     free(fd);
     pthread_exit(NULL);
-
- 
-
 }
+
+/**
+  * @brief 将客户端发送的消息广播到全聊天室
+  * @param fd-->socket描述符
+  * @retval
+  * @details
+  */
+void broadcastmsg(int fd, char recv_buf[])
+{
+    Member *p = NULL;
+    for(p=room1.head; p->next != NULL; p=p->next){
+        if(p->sockfd != fd){
+            send(p->sockfd, recv_buf, MAXDATASIZE, 0);
+        }
+    }
+}
+
+
 int main(void){
 
     StartServer();
