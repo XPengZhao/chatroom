@@ -116,12 +116,9 @@ int StartServer(void)
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     bind(serverfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-
-    //创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
-    listen(serverfd, BACKLOG);
+    listen(serverfd, BACKLOG);                   //创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
 
     printf("======bind success,waiting for client's request======\n");
-    //让操作系统回填client的连接信息（ip、port、protocol）
     socklen_t client_len = sizeof(clientaddr);
     while(1)
     {
@@ -130,10 +127,6 @@ int StartServer(void)
         //accept函数从listen函数维护的监听队列里取一个客户连接请求处理
         *clientfd = accept(serverfd, (struct sockaddr*)&clientaddr, &client_len);
         
-        /*
-         * 此处进行用户身份验证
-         * */
-
         if(*clientfd!=-1){
             printf("\n=====================客户端链接成功=====================\n");
             printf("IP = %s:PORT = %d\n", inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
@@ -142,7 +135,7 @@ int StartServer(void)
             printf("\n=====================客户端连接失败=====================\n");
             continue;
         }
-        if(pthread_create(&id, NULL, recv_data, clientfd)!=0){         //创建子线程 
+        if(pthread_create(&id, NULL, thread_fun, clientfd)!=0){         //创建子线程 
             perror("pthread_create");
             break;
         }
@@ -153,31 +146,30 @@ int StartServer(void)
 }
 
 /**
-  * @brief 从客户端接受数据
+  * @brief 客户端握手成功后的线程处理函数
   * @param 客户端socket文件描述符
   * @retval None
   * @detail None
   */
-void *recv_data(void *fd){
+void *thread_fun(void *fd){
     int client_sockfd;
     char recv_buf[MAXDATASIZE] = {'\0'}, send_buf[MAXDATASIZE] = {'\0'};
     client_sockfd=*(int *)fd;
     char name[MAXDATASIZE] = {'\0'}, pwd[MAXDATASIZE] = {'\0'};
     Member *usr = NULL;
-    strcpy(send_buf,"are you new?\n");    
+    strcpy(send_buf,"welcome to chat room\n");    
     send(client_sockfd, send_buf, sizeof(send_buf), 0);
 
     GetUserInfo(name, pwd, client_sockfd);
     usr = CreateNode(name, pwd, client_sockfd);
     AddOnlineUsr(&room1, usr);
-
     while(1){
         memset(recv_buf, '\0', MAXDATASIZE/sizeof (char));
         //接收缓冲区中没有数据或者协议正在接收数据，那么recv就一直等待，直到协议把数据接收完毕
         int recv_length = recv(client_sockfd, recv_buf, sizeof (recv_buf), 0);
         if(recv_length == 0)
         {
-            printf("client has closed!\n");
+            printf("client %d has closed!\n",client_sockfd);
             break;
         }            
         else if(recv_length == -1){
@@ -185,7 +177,8 @@ void *recv_data(void *fd){
              exit(EXIT_FAILURE); 
         }
 
-        if(strcmp(recv_buf,"exit") == 0){
+        if(strcmp(recv_buf,"exit\n") == 0){
+            printf("client %d has closed!\n",client_sockfd);
             break;
         }
  
@@ -196,8 +189,6 @@ void *recv_data(void *fd){
         //unix上标准输入输出都是带有缓存的,当遇到行刷新标志或者该缓存已满的情况下，才会把缓存的数据显示到终端设备上。
         //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
         //操作系统为减少 IO操作 所以设置了缓冲区.  等缓冲区满了再去操作IO. 这样是为了提高效率。
-        //fgets(recv_buf, sizeof(buf), stdin);
-        //send(client_sockfd, recv_buf, recv_length, 0);
     }
     close(client_sockfd);
     free(fd);
@@ -213,7 +204,7 @@ void *recv_data(void *fd){
 void broadcastmsg(int fd, char recv_buf[])
 {
     Member *p = NULL;
-    for(p=room1.head; p->next != NULL; p=p->next){
+    for(p=room1.head; p != NULL; p=p->next){
         if(p->sockfd != fd){
             send(p->sockfd, recv_buf, MAXDATASIZE, 0);
         }

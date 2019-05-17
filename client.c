@@ -6,10 +6,10 @@ void send_data(int fd){   //可用常量？
     while(1){
 
         printf("input:");
-        scanf("%s", buf);                  //输入发送数据
+        fgets(buf, sizeof(buf), stdin);
         fflush(stdin);                     //清除输入缓存 
         
-        if(strcmp(buf, "exit") == 0){
+        if(strcmp(buf, "exit\n") == 0){
             if(send(server_sockfd, buf, sizeof(buf), 0) == -1){
                 perror("send error");
                 exit(EXIT_FAILURE);
