@@ -222,6 +222,30 @@ void *recv_data(void *fd){
              perror("recv");  
              exit(EXIT_FAILURE); 
         }
+        else if(strncmp(recv_buf, "/file", strlen("/file")) == 0)
+        {
+        //开始文件的读写操作
+            char buf[MAXDATASIZE];
+            memset(buf,0x00,sizeof(buf));
+            int filefd = open("copy.txt",O_WRONLY |O_CREAT |O_TRUNC,0777);
+            while(1)
+            {
+                int leng = recv(client_sockfd,buf,sizeof(buf),0);
+                if(leng == 0)
+                {
+                    printf("Opposite have close the socket.\n"); 
+                    break; //表示文件已经读到了结尾,也意味着客户端关闭了socket
+                }
+                if(leng == -1 && errno == EINTR)
+                    continue;
+                if(leng == -1 )
+                    break; //表示出现了严重的错误
+                write(filefd,buf,leng);                                                                                                                                                                                                                        
+            }  
+            //若文件的读写已经结束,则关闭文件描述符
+            close(filefd);
+            break;
+        }
 
         //if(strcmp(recv_buf,"exit") == 0){
         //     break;
