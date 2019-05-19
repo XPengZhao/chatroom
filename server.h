@@ -9,7 +9,7 @@
 #include <pthread.h>
 
 int StartServer(void);
-void *thread_fun(void *fd);
+void *recv_data(void *fd);
 void broadcastmsg(int fd, char recv_buf[]);
 
 #define PORT 8888

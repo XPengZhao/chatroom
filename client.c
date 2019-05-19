@@ -6,10 +6,12 @@ void send_data(int fd){   //可用常量？
     while(1){
 
         printf("input:");
-        fgets(buf, sizeof(buf), stdin);
+        fgets(buf, MAXDATASIZE, stdin);
+        if(buf[strlen(buf)-1] == '\n')
+            buf[strlen(buf)-1] = '\0';
         fflush(stdin);                     //清除输入缓存 
         
-        if(strcmp(buf, "exit\n") == 0){
+        if(strncmp(buf, "/exit", strlen("/exit")) == 0){
             if(send(server_sockfd, buf, sizeof(buf), 0) == -1){
                 perror("send error");
                 exit(EXIT_FAILURE);
@@ -49,21 +51,40 @@ int main(int argc, char *argv[])
     serveraddr.sin_port = htons(PORT);
     inet_pton(AF_INET, server_ip, &serveraddr.sin_addr);
     connect(sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+   
     recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
-    if(strcmp(recv_buf, "welcome to chat room\n") == 0){
-        printf("=====================服务器链接成功=====================\n");
+    if (strncmp(recv_buf, "WELCOME!", strlen("WELCOME!")) == 0)
+    	printf("=====================服务器链接成功=====================\n");
+    else if (strncmp(recv_buf, "FULL!", strlen("FULL!")) == 0)
+    {
+        printf("=====================服务器已满！！=====================\n");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+	printf("=====================服务器链接失败=====================\n");
+	exit(EXIT_FAILURE);
     }
     fputs(recv_buf,stdout);
-    recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
-    fputs(recv_buf,stdout);
-    fgets(send_buf, sizeof(send_buf), stdin);
-    fflush(stdin);
-    send(sockfd, send_buf, sizeof(send_buf), 0);
-    recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
-    fputs(recv_buf,stdout);
-    fgets(send_buf, sizeof(send_buf), stdin);
-    fflush(stdin);
-    send(sockfd, send_buf, sizeof(send_buf), 0);
+    while(1)
+    {
+        recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
+        fputs(recv_buf,stdout);
+        fgets(send_buf, sizeof(send_buf), stdin);
+        fflush(stdin);
+        send(sockfd, send_buf, sizeof(send_buf), 0);
+        recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
+        fputs(recv_buf,stdout);
+        fgets(send_buf, sizeof(send_buf), stdin);
+        fflush(stdin);
+        send(sockfd, send_buf, sizeof(send_buf), 0);
+        recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
+        if(strncmp(recv_buf, "ok", strlen("ok")) == 0)
+            break;
+        else
+            fputs("This name has been used!\n", stdout);
+            
+    }
 
     if(pthread_create(&id, NULL, recv_data, &sockfd)!=0){         //创建子线程 
             perror("pthread_create");
@@ -85,25 +106,11 @@ void *recv_data(void *fd)
    int server_fd = *(int *)fd;
    while(1){
        recv(server_fd, recv_buf, MAXDATASIZE/sizeof (char), 0);
+       fputs("\n", stdout);
        fputs(recv_buf,stdout);
+       fputs("\n", stdout);
        fflush(stdout);
    }
    pthread_exit(NULL);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
