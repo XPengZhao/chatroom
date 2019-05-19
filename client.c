@@ -1,4 +1,45 @@
 #include "client.h"
+
+
+void send_file(int fd){
+    char path[MAXDATASIZE], buf[MAXDATASIZE];
+    int server_sockfd = fd;
+    memset(buf, 0, sizeof(buf));
+    memset(path, 0, sizeof(path));
+    printf("path: ");
+    scanf("%s", path);
+    fflush(stdin);
+    int fd2 = open(path, O_RDONLY);
+    if (fd2 < 0)
+    {
+        perror("open");
+        exit(-3);
+    }
+    while (1)
+    {
+        int len = read(fd2,buf,sizeof(buf));
+        if (len == 0)
+            break;    
+        int _tmp = 0;
+        while (1)
+        {
+            int ret = send(server_sockfd, buf + _tmp, len - _tmp, 0);
+            if (ret > 0)
+                _tmp += ret;
+            if (_tmp == ret)
+                break;
+            if (ret < 0)
+            {
+                perror("write");
+                break;
+            }
+        }
+    }
+    printf("file is uploaded, see you next time.\n");
+    close(server_sockfd);
+    exit(0);
+}
+
 void send_data(int fd){   //可用常量？
     int server_sockfd = fd;
     char buf[MAXDATASIZE];
@@ -16,7 +57,15 @@ void send_data(int fd){   //可用常量？
             }
             break;
         }
-
+        else if (strncmp(buf, "/file", strlen("/file")) == 0)
+        {
+            if (send(server_sockfd, buf, sizeof(buf), 0) == -1)
+            {
+                perror("send error");
+                exit(EXIT_FAILURE);
+            }
+            send_file(fd);
+        }
         if(send(server_sockfd, buf, sizeof(buf), 0) == -1){
              perror("send error");
              exit(EXIT_FAILURE);
@@ -26,9 +75,7 @@ void send_data(int fd){   //可用常量？
     close(server_sockfd);
     exit(0);
  
-
 }
-
 int main(int argc, char *argv[])
 {
     if(argc != 2){
