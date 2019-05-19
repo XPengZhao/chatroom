@@ -49,9 +49,10 @@ int main(int argc, char *argv[])
     serveraddr.sin_port = htons(PORT);
     inet_pton(AF_INET, server_ip, &serveraddr.sin_addr);
     connect(sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-    printf("=====================服务器链接成功=====================\n");
-
     recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
+    if(strcmp(recv_buf, "welcome to chat room\n") == 0){
+        printf("=====================服务器链接成功=====================\n");
+    }
     fputs(recv_buf,stdout);
     recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
     fputs(recv_buf,stdout);
