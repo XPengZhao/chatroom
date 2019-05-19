@@ -6,7 +6,9 @@ void send_data(int fd){   //可用常量？
     while(1){
 
         printf("input:");
-        scanf("%s", buf);                  //输入发送数据
+        fgets(buf, MAXDATASIZE, stdin);
+        if(buf[strlen(buf)-1] == '\n')
+            buf[strlen(buf)-1] = '\0';
         fflush(stdin);                     //清除输入缓存 
         
         if(strncmp(buf, "/exit", strlen("/exit")) == 0){
@@ -111,20 +113,4 @@ void *recv_data(void *fd)
    }
    pthread_exit(NULL);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -214,7 +214,7 @@ void *recv_data(void *fd){
         memset(recv_buf, '\0', MAXDATASIZE/sizeof (char));
         //接收缓冲区中没有数据或者协议正在接收数据，那么recv就一直等待，直到协议把数据接收完毕
         int recv_length = recv(client_sockfd, recv_buf, sizeof (recv_buf), 0);
-        if(strncmp(recv_buf, "/exit", strlen("/exit")) == 0)
+        if(strncmp(recv_buf, "/exit", strlen("/exit")) == 0 || recv_length == 0)
         {
             printf("client %s has closed!\n", searchbysockfd(&room1, client_sockfd)->name);
             snprintf(temp, MAXDATASIZE, "%s has quited the chatroom\n", searchbysockfd(&room1, client_sockfd)->name);
@@ -238,8 +238,6 @@ void *recv_data(void *fd){
         //unix上标准输入输出都是带有缓存的,当遇到行刷新标志或者该缓存已满的情况下，才会把缓存的数据显示到终端设备上。
         //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
         //操作系统为减少 IO操作 所以设置了缓冲区.  等缓冲区满了再去操作IO. 这样是为了提高效率。
-        //fgets(recv_buf, sizeof(buf), stdin);
-        //send(client_sockfd, recv_buf, recv_length, 0);
     }
     close(client_sockfd);
     free(fd);
