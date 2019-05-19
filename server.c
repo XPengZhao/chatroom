@@ -82,6 +82,7 @@ Member *searchbyname(Room *room, char *name)
             return p;
     return NULL;
 }
+
 /**
   * @brief 由sockfd查找聊天室成员
   * @param sorkfd-->成员姓名指针
@@ -103,10 +104,8 @@ int GetUserInfo(char *name, char *pwd, int client_sockfd)
     strcpy(send_buf, "name?");
     send(client_sockfd, send_buf, sizeof(send_buf), 0);
     recv(client_sockfd, name, MAXDATASIZE, 0);
-    for(int i = 0; i < MAXDATASIZE; i ++)
-	if(name[i] == '\n')
-	    for(int j = i; j < MAXDATASIZE; j ++)
-		name[j] = name[j + 1];
+    if(name[strlen(name)-1] == '\n')
+        name[strlen(name)-1] = '\0';
     strcpy(send_buf, "password?");
     send(client_sockfd, send_buf, sizeof(send_buf), 0);
     recv(client_sockfd, pwd, MAXDATASIZE, 0);
@@ -144,8 +143,6 @@ int StartServer(void)
     serverfd = socket(AF_INET, SOCK_STREAM, 0);  //创建一个socket描述符
     printf("serverfd=%d\n", serverfd);
 
-    bzero(&serveraddr, sizeof(serveraddr));
-    serveraddr.sin_family = AF_INET;
     serveraddr.sin_port = htons(PORT); 
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
@@ -236,6 +233,8 @@ void *recv_data(void *fd){
         fputs("\n", stdout);
         fflush(stdout);
         //unix上标准输入输出都是带有缓存的,当遇到行刷新标志或者该缓存已满的情况下，才会把缓存的数据显示到终端设备上。
+        //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
+        //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
         //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
         //操作系统为减少 IO操作 所以设置了缓冲区.  等缓冲区满了再去操作IO. 这样是为了提高效率。
     }
