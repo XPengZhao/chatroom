@@ -145,12 +145,8 @@ int StartServer(void)
 
     serveraddr.sin_port = htons(PORT); 
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
     bind(serverfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-
-    //创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
-    listen(serverfd, BACKLOG);
-
+    listen(serverfd, BACKLOG);   //创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
     printf("======bind success,waiting for client's request======\n");
     //让操作系统回填client的连接信息（ip、port、protocol）
     socklen_t client_len = sizeof(clientaddr);
@@ -161,10 +157,6 @@ int StartServer(void)
         //accept函数从listen函数维护的监听队列里取一个客户连接请求处理
         *clientfd = accept(serverfd, (struct sockaddr*)&clientaddr, &client_len);
         
-        /*
-         * 此处进行用户身份验证
-         * */
-
         if(*clientfd!=-1){
             printf("\n=====================客户端链接成功=====================\n");
             printf("IP = %s:PORT = %d, clientfd = %d\n", inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port), *clientfd);
@@ -173,7 +165,7 @@ int StartServer(void)
             printf("\n=====================客户端连接失败=====================\n");
             continue;
         }
-        if(pthread_create(&id, NULL, recv_data, clientfd)!=0){         //创建子线程 
+        if(pthread_create(&id, NULL, pthread_func, clientfd)!=0){         //创建子线程 
             perror("pthread_create");
             break;
         }
@@ -189,12 +181,13 @@ int StartServer(void)
   * @retval None
   * @detail None
   */
-void *recv_data(void *fd){
+void *pthread_func(void *fd){
     int client_sockfd;
     char recv_buf[MAXDATASIZE] = {'\0'}, send_buf[MAXDATASIZE] = {'\0'};
-    client_sockfd=*(int *)fd;
     char name[MAXDATASIZE] = {'\0'}, pwd[MAXDATASIZE] = {'\0'}, temp[MAXDATASIZE] = {'\0'};
     Member *usr = NULL;
+
+    client_sockfd=*(int *)fd;
     if (room1.n < 100)
         strcpy(send_buf,"WELCOME!\n");
     else
@@ -247,18 +240,12 @@ void *recv_data(void *fd){
             break;
         }
 
-        //if(strcmp(recv_buf,"exit") == 0){
-        //     break;
-        //}
- 
     	printf("%s say: ", searchbysockfd(&room1, client_sockfd)->name);
         broadcastmsg(client_sockfd,recv_buf);
         fputs(recv_buf, stdout);
         fputs("\n", stdout);
         fflush(stdout);
         //unix上标准输入输出都是带有缓存的,当遇到行刷新标志或者该缓存已满的情况下，才会把缓存的数据显示到终端设备上。
-        //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
-        //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
         //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
         //操作系统为减少 IO操作 所以设置了缓冲区.  等缓冲区满了再去操作IO. 这样是为了提高效率。
     }
