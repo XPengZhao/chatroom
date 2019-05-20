@@ -121,11 +121,6 @@ int main(int argc, char *argv[])
         fflush(stdin);
         send(sockfd, send_buf, sizeof(send_buf), 0);
         recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
-        fputs(recv_buf,stdout);
-        fgets(send_buf, sizeof(send_buf), stdin);
-        fflush(stdin);
-        send(sockfd, send_buf, sizeof(send_buf), 0);
-        recv(sockfd, recv_buf, MAXDATASIZE/sizeof (char), 0);
         if(strncmp(recv_buf, "ok", strlen("ok")) == 0)
             break;
         else

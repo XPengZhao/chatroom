@@ -3,7 +3,6 @@
 /*聊天室成员信息*/
 typedef struct Member{
     char name[100];
-    char password[100];
     int sockfd;
     struct Member *next;
 } Member;
@@ -18,15 +17,14 @@ Room room1={ NULL,0 };
 
 /**
   * @brief 创建结点
-  * @param name-->姓名，pwd-->密码，sockfd-->客户端Socket描述符
+  * @param name-->姓名，sockfd-->客户端Socket描述符
   * @retval 该客户的成员信息
   * @details None
   */
-Member *CreateNode(char name[], char pwd[], int sockfd)
+Member *CreateNode(char name[], int sockfd)
 {
     Member *p = (Member *)malloc(sizeof(Member));
     strcpy(p->name,name);
-    strcpy(p->password,pwd);
     p->sockfd = sockfd;
     return p;
 }
@@ -98,7 +96,7 @@ Member *searchbyname(Room *room, char *name)
 }
 
 
-int GetUserInfo(char *name, char *pwd, int client_sockfd)
+int GetUserInfo(char *name, int client_sockfd)
 {
     char send_buf[MAXDATASIZE]={'\0'};
     strcpy(send_buf, "name?");
@@ -106,9 +104,6 @@ int GetUserInfo(char *name, char *pwd, int client_sockfd)
     recv(client_sockfd, name, MAXDATASIZE, 0);
     if(name[strlen(name)-1] == '\n')
         name[strlen(name)-1] = '\0';
-    strcpy(send_buf, "password?");
-    send(client_sockfd, send_buf, sizeof(send_buf), 0);
-    recv(client_sockfd, pwd, MAXDATASIZE, 0);
     if (searchbyname(&room1, name))
     {
         strcpy(send_buf, "used");
@@ -184,7 +179,7 @@ int StartServer(void)
 void *pthread_func(void *fd){
     int client_sockfd;
     char recv_buf[MAXDATASIZE] = {'\0'}, send_buf[MAXDATASIZE] = {'\0'};
-    char name[MAXDATASIZE] = {'\0'}, pwd[MAXDATASIZE] = {'\0'}, temp[MAXDATASIZE] = {'\0'};
+    char name[MAXDATASIZE] = {'\0'}, temp[MAXDATASIZE] = {'\0'};
     Member *usr = NULL;
 
     client_sockfd=*(int *)fd;
@@ -194,8 +189,8 @@ void *pthread_func(void *fd){
         strcpy(send_buf, "FULL!\n");
     send(client_sockfd, send_buf, sizeof(send_buf), 0);
 
-    while(GetUserInfo(name, pwd, client_sockfd));
-    usr = CreateNode(name, pwd, client_sockfd);
+    while(GetUserInfo(name, client_sockfd));
+    usr = CreateNode(name, client_sockfd);
     AddOnlineUsr(&room1, usr);
     snprintf(temp, MAXDATASIZE, "%s has join the chatroom\n", searchbysockfd(&room1, client_sockfd)->name);
     broadcastmsg(client_sockfd, temp);
