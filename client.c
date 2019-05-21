@@ -9,6 +9,7 @@ void send_file(int fd){
     printf("path: ");
     scanf("%s", path);
     fflush(stdin);
+    send(server_sockfd, path, MAXDATASIZE, 0);
 
     int fd2 = open(path, O_RDONLY);
     if (fd2 < 0)        //打开文件失败

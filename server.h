@@ -15,6 +15,7 @@
 int StartServer(void);
 void *pthread_func(void *fd);
 void broadcastmsg(int fd, char recv_buf[]);
+void recv_file(int fd);
 
 #define PORT 8888
 #define BACKLOG 10
