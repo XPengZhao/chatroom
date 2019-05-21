@@ -38,12 +38,12 @@ void AddOnlineUsr(Room *room, Member *usr)
     Member *p = NULL;
     if(room->n == 0){
         room->head=usr;
-        room->n++;
     }
     else{
         for(p = room->head; p->next != NULL; p=p->next);
         p->next = usr;
     }
+    room->n++;
 }
 
 /**
@@ -52,7 +52,7 @@ void AddOnlineUsr(Room *room, Member *usr)
   */
 void DeleteOnlineUsr(Room *room, Member *usr){
     Member *p1 = NULL, *p2 = NULL;
-    for(p1 = room->head; p1->next != NULL; p1=p1->next){
+    for(p1 = room->head; p1 != NULL; p1 = p1->next){
         if(p1->sockfd == usr->sockfd)
             break;
         p2 = p1;
@@ -65,6 +65,7 @@ void DeleteOnlineUsr(Room *room, Member *usr){
         p2->next = p1->next;
         free(p1);
     }
+    room->n--;
 }
 
 /**
@@ -204,6 +205,7 @@ void *pthread_func(void *fd){
             printf("client %s has closed!\n", searchbysockfd(&room1, client_sockfd)->name);
             snprintf(temp, MAXDATASIZE, "%s has quited the chatroom\n", searchbysockfd(&room1, client_sockfd)->name);
             broadcastmsg(client_sockfd, temp);
+            DeleteOnlineUsr(&room1,usr);
             break;
         }            
         else if(recv_length == -1){
@@ -240,9 +242,6 @@ void *pthread_func(void *fd){
         fputs(recv_buf, stdout);
         fputs("\n", stdout);
         fflush(stdout);
-        //unix上标准输入输出都是带有缓存的,当遇到行刷新标志或者该缓存已满的情况下，才会把缓存的数据显示到终端设备上。
-        //ANSI C中定义换行符'\n'可以认为是行刷新标志。所以，printf函数没有带'\n'是不会自动刷新输出流，直至缓存被填满。
-        //操作系统为减少 IO操作 所以设置了缓冲区.  等缓冲区满了再去操作IO. 这样是为了提高效率。
     }
     close(client_sockfd);
     free(fd);

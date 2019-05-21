@@ -19,4 +19,4 @@ void broadcastmsg(int fd, char recv_buf[]);
 #define PORT 8888
 #define BACKLOG 10
 #define MAXDATASIZE  2048
-
+#define MAXFILESIZE  1048576

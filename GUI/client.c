@@ -9,14 +9,12 @@ void send_file(int fd){
     printf("path: ");
     scanf("%s", path);
     fflush(stdin);
-
     int fd2 = open(path, O_RDONLY);
-    if (fd2 < 0)        //打开文件失败
+    if (fd2 < 0)
     {
         perror("open");
         exit(-3);
     }
-
     while (1)
     {
         int len = read(fd2,buf,sizeof(buf));
@@ -61,9 +59,9 @@ void send_data(int fd){   //可用常量？
             }
             break;
         }
-        else if(strncmp(buf, "/file", strlen("/file")) == 0)
+        else if (strncmp(buf, "/file", strlen("/file")) == 0)
         {
-            if(send(server_sockfd, buf, sizeof(buf), 0) == -1)
+            if (send(server_sockfd, buf, sizeof(buf), 0) == -1)
             {
                 perror("send error");
                 exit(EXIT_FAILURE);
@@ -79,6 +77,10 @@ void send_data(int fd){   //可用常量？
     close(server_sockfd);
     exit(0);
  
+}
+int StartClient(char *ip)
+{
+
 }
 int main(int argc, char *argv[])
 {
