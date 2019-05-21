@@ -1,18 +1,5 @@
 #include "server.h"
 
-/*聊天室成员信息*/
-typedef struct Member{
-    char name[100];
-    int sockfd;
-    struct Member *next;
-} Member;
-
-/*聊天室成员链表*/
-typedef struct Room{
-    Member *head;
-    int n;
-}Room;
-
 Room room1={ NULL,0 };
 
 /**
