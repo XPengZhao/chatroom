@@ -1,5 +1,4 @@
 #include "server.h"
-
 Room room1={ NULL,0 };
 
 /**
