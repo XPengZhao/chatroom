@@ -205,7 +205,7 @@ void *pthread_func(void *fd){
         else if(strncmp(recv_buf, "/file", strlen("/file")) == 0)
         {
             recv_file(client_sockfd);
-            break;
+            continue;
         }
 
     	printf("%s say: ", searchbysockfd(&room1, client_sockfd)->name);
@@ -246,15 +246,22 @@ void recv_file(int fd)
 {
     //开始文件的读写操作
     char buf[MAXDATASIZE]={0}, path[MAXDATASIZE]={0};
+    int total_length = 0;
+    File_info file_info;
     recv(fd,buf,sizeof(buf),0);
-    printf("recv is:%s\n",buf);
-    snprintf(path, MAXDATASIZE, "./recv_file/%s", buf);
+    memset(&file_info, 0, sizeof(file_info));
+    memcpy(&file_info, buf, sizeof(file_info));
+    printf("recv is:%s\n",file_info.filename);
+    printf("file size is %d\n", file_info.filesize);
+    snprintf(path, MAXDATASIZE, "./recv_file/%s", file_info.filename);
     printf("path is:%s\n",path);
     memset(buf,0x00,sizeof(buf));
     int filefd = open(path, O_WRONLY |O_CREAT |O_TRUNC, 0777);
     while(1)
     {
         int leng = recv(fd,buf,sizeof(buf),0);
+        total_length += leng;
+
         if(leng == 0)
         {
             printf("Opposite have close the socket.\n"); 
@@ -265,8 +272,11 @@ void recv_file(int fd)
         if(leng == -1 )
             break; //表示出现了严重的错误
         write(filefd,buf,leng);                                
-    }  
-    //若文件的读写已经结束,则关闭文件描述符
+        if(total_length > file_info.filesize){
+            printf("file received\n");
+            break;
+        }
+    }
     close(filefd);
 }
 

@@ -12,6 +12,10 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
+#define PORT 8888
+#define BACKLOG 100
+#define MAXDATASIZE  2048
+
 /*聊天室成员信息*/
 typedef struct Member{
     char name[100];
@@ -25,12 +29,14 @@ typedef struct Room{
     int n;
 }Room;
 
+typedef struct File_info{
+    int filesize;
+    char filename[100];
+}File_info;
 
 int StartServer(void);
 void *pthread_func(void *fd);
 void broadcastmsg(int fd, char recv_buf[]);
 void recv_file(int fd);
 
-#define PORT 8888
-#define BACKLOG 100
-#define MAXDATASIZE  2048
+

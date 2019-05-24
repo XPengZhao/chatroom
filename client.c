@@ -1,15 +1,35 @@
 #include "client.h"
+#include <sys/stat.h>
 
+
+typedef struct File_info{
+    int filesize;
+    char filename[100];
+}File_info;
+
+int get_filesize(char *filename)
+{
+    struct stat statbuf;
+    stat(filename, &statbuf);
+    int size = statbuf.st_size;
+    
+    return size;
+}
 
 void send_file(int fd){
     char path[MAXDATASIZE], buf[MAXDATASIZE];
+    File_info file_info;
     int server_sockfd = fd;
     memset(buf, 0, sizeof(buf));
     memset(path, 0, sizeof(path));
     printf("path: ");
     scanf("%s", path);
     fflush(stdin);
-    send(server_sockfd, path, MAXDATASIZE, 0);
+
+    file_info.filesize = get_filesize(path);
+    strcpy(file_info.filename,path);
+    memcpy(buf, &file_info, sizeof(file_info));
+    send(server_sockfd, buf, MAXDATASIZE, 0);
 
     int fd2 = open(path, O_RDONLY);
     if (fd2 < 0)        //打开文件失败
@@ -17,6 +37,8 @@ void send_file(int fd){
         perror("open");
         exit(-3);
     }
+
+
 
     while (1)
     {
@@ -38,12 +60,10 @@ void send_file(int fd){
             }
         }
     }
-    printf("file is uploaded, see you next time.\n");
-    close(server_sockfd);
-    exit(0);
+    printf("file is uploaded\n");
 }
 
-void send_data(int fd){   //可用常量？
+void send_data(int fd){  
     int server_sockfd = fd;
     char buf[MAXDATASIZE];
     memset(buf, 0, sizeof(buf));
