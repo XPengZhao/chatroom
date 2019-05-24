@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
     }
     else
     {
-	printf("=====================服务器链接失败=====================\n");
-	exit(EXIT_FAILURE);
+	    printf("=====================服务器链接失败=====================\n");
+	    exit(EXIT_FAILURE);
     }
     fputs(recv_buf,stdout);
     while(1)

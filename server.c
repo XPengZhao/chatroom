@@ -123,13 +123,17 @@ int StartServer(void)
     int * clientfd;
     struct sockaddr_in serveraddr,clientaddr;
 
-    serverfd = socket(AF_INET, SOCK_STREAM, 0);  //创建一个socket描述符
+    //socket()创建一个socket描述符
+    //listen()创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
+    //accept()从listen函数维护的监听队列里取一个客户连接请求处理
+
+    serverfd = socket(AF_INET, SOCK_STREAM, 0);
     printf("serverfd=%d\n", serverfd);
 
     serveraddr.sin_port = htons(PORT); 
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
     bind(serverfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-    listen(serverfd, BACKLOG);   //创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
+    listen(serverfd, BACKLOG);       
     printf("======bind success,waiting for client's request======\n");
     //让操作系统回填client的连接信息（ip、port、protocol）
     socklen_t client_len = sizeof(clientaddr);
@@ -137,7 +141,6 @@ int StartServer(void)
     {
         pthread_t id;
         clientfd = (int *)malloc(sizeof(int));
-        //accept函数从listen函数维护的监听队列里取一个客户连接请求处理
         *clientfd = accept(serverfd, (struct sockaddr*)&clientaddr, &client_len);
         
         if(*clientfd!=-1){
