@@ -246,7 +246,7 @@ void recv_file(int fd)
 {
     //开始文件的读写操作
     char buf[MAXDATASIZE]={0}, path[MAXDATASIZE]={0};
-    int total_length = 0;
+    int leng = 0;
     File_info file_info;
     recv(fd,buf,sizeof(buf),0);
     memset(&file_info, 0, sizeof(file_info));
@@ -257,10 +257,17 @@ void recv_file(int fd)
     printf("path is:%s\n",path);
     memset(buf,0x00,sizeof(buf));
     int filefd = open(path, O_WRONLY |O_CREAT |O_TRUNC, 0777);
+    int remain_len = file_info.filesize;
     while(1)
     {
-        int leng = recv(fd,buf,sizeof(buf),0);
-        total_length += leng;
+        if(remain_len >= MAXDATASIZE){
+            leng = recv(fd, buf, MAXDATASIZE, 0);
+            remain_len -= leng;
+        }
+        else{
+            leng = recv(fd, buf, remain_len, 0);
+            remain_len -= leng;
+        }
 
         if(leng == 0)
         {
@@ -272,7 +279,7 @@ void recv_file(int fd)
         if(leng == -1 )
             break; //表示出现了严重的错误
         write(filefd,buf,leng);                                
-        if(total_length > file_info.filesize){
+        if(remain_len == 0){
             printf("file received\n");
             break;
         }

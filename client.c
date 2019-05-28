@@ -38,8 +38,6 @@ void send_file(int fd){
         exit(-3);
     }
 
-
-
     while (1)
     {
         int len = read(fd2,buf,sizeof(buf));
@@ -61,6 +59,7 @@ void send_file(int fd){
         }
     }
     printf("file is uploaded\n");
+    return ;
 }
 
 void send_data(int fd){  
@@ -90,6 +89,7 @@ void send_data(int fd){
                 exit(EXIT_FAILURE);
             }
             send_file(fd);
+            continue;
         }
         if(send(server_sockfd, buf, sizeof(buf), 0) == -1){
              perror("send error");
