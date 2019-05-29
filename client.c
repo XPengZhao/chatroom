@@ -23,8 +23,10 @@ void send_file(int fd){
     memset(buf, 0, sizeof(buf));
     memset(path, 0, sizeof(path));
     printf("path: ");
-    scanf("%s", path);
-    fflush(stdin);
+    fgets(path, MAXDATASIZE, stdin);
+    if(path[strlen(path)-1] == '\n')
+        path[strlen(path)-1] = '\0';
+    fflush(stdin);                     //清除输入缓存 
 
     file_info.filesize = get_filesize(path);
     strcpy(file_info.filename,path);
