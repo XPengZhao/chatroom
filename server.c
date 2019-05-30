@@ -13,12 +13,15 @@ Member *CreateNode(char name[], int sockfd)
     Member *p = (Member *)malloc(sizeof(Member));
     strcpy(p->name,name);
     p->sockfd = sockfd;
+    p->next = NULL;
     return p;
 }
 
 /**
   * @brief 添加结点
   * @param room-->聊天室链表;  usr-->成员信息结点
+  * @retval None
+  * @details None
   */
 void AddOnlineUsr(Room *room, Member *usr)
 {
@@ -36,6 +39,8 @@ void AddOnlineUsr(Room *room, Member *usr)
 /**
   * @brief 删除结点
   * @param room-->聊天室链表;  usr-->成员信息结点
+  * @retval None
+  * @details None
   */
 void DeleteOnlineUsr(Room *room, Member *usr){
     Member *p1 = NULL, *p2 = NULL;
@@ -58,7 +63,7 @@ void DeleteOnlineUsr(Room *room, Member *usr){
 /**
   * @brief 由姓名查找聊天室成员
   * @param name-->成员姓名指针
-  * @
+  * @retval 搜索到的成员结点
   */
 Member *searchbyname(Room *room, char *name)
 {
@@ -72,7 +77,7 @@ Member *searchbyname(Room *room, char *name)
 /**
   * @brief 由sockfd查找聊天室成员
   * @param sorkfd-->成员姓名指针
-  * @
+  * @retval 搜索到的成员结点
   */
  Member *searchbysockfd(Room *room, int sockfd)
 {
@@ -83,7 +88,12 @@ Member *searchbyname(Room *room, char *name)
     return NULL;
 }
 
-
+/**
+  * @brief 与用户交互，获得登录名
+  * @param name-->用户登录名 client_sockfd-->文件描述符
+  * @retval successful-->1 failed-->0
+  * @details 判断登录名是否重复
+  */
 int GetUserInfo(char *name, int client_sockfd)
 {
     char send_buf[MAXDATASIZE]={'\0'};
@@ -162,7 +172,7 @@ int StartServer(void)
 }
 
 /**
-  * @brief 从客户端接受数据
+  * @brief 客户线程处理函数
   * @param 客户端socket文件描述符
   * @retval None
   * @detail None
