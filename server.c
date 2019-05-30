@@ -12,12 +12,15 @@ Member *CreateNode(char name[], int sockfd)
     Member *p = (Member *)malloc(sizeof(Member));
     strcpy(p->name,name);
     p->sockfd = sockfd;
+    p->next = NULL;
     return p;
 }
 
 /**
   * @brief 添加结点
   * @param room-->聊天室链表;  usr-->成员信息结点
+  * @retval None
+  * @details None
   */
 void AddOnlineUsr(Room *room, Member *usr)
 {
@@ -35,6 +38,8 @@ void AddOnlineUsr(Room *room, Member *usr)
 /**
   * @brief 删除结点
   * @param room-->聊天室链表;  usr-->成员信息结点
+  * @retval None
+  * @details None
   */
 void DeleteOnlineUsr(Room *room, Member *usr){
     Member *p1 = NULL, *p2 = NULL;
@@ -57,7 +62,7 @@ void DeleteOnlineUsr(Room *room, Member *usr){
 /**
   * @brief 由姓名查找聊天室成员
   * @param name-->成员姓名指针
-  * @
+  * @retval 搜索到的成员结点
   */
 Member *searchbyname(Room *room, char *name)
 {
@@ -71,7 +76,7 @@ Member *searchbyname(Room *room, char *name)
 /**
   * @brief 由sockfd查找聊天室成员
   * @param sorkfd-->成员姓名指针
-  * @
+  * @retval 搜索到的成员结点
   */
  Member *searchbysockfd(Room *room, int sockfd)
 {
@@ -82,7 +87,12 @@ Member *searchbyname(Room *room, char *name)
     return NULL;
 }
 
-
+/**
+  * @brief 与用户交互，获得登录名
+  * @param name-->用户登录名 client_sockfd-->文件描述符
+  * @retval successful-->1 failed-->0
+  * @details 判断登录名是否重复
+  */
 int GetUserInfo(char *name, int client_sockfd)
 {
     char send_buf[MAXDATASIZE]={'\0'};
@@ -122,13 +132,17 @@ int StartServer(void)
     int * clientfd;
     struct sockaddr_in serveraddr,clientaddr;
 
-    serverfd = socket(AF_INET, SOCK_STREAM, 0);  //创建一个socket描述符
+    //socket()创建一个socket描述符
+    //listen()创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
+    //accept()从listen函数维护的监听队列里取一个客户连接请求处理
+
+    serverfd = socket(AF_INET, SOCK_STREAM, 0);
     printf("serverfd=%d\n", serverfd);
 
     serveraddr.sin_port = htons(PORT); 
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
     bind(serverfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-    listen(serverfd, BACKLOG);   //创建一个监听队列，保存用户的请求连接信息（ip、port、protocol)
+    listen(serverfd, BACKLOG);       
     printf("======bind success,waiting for client's request======\n");
     //让操作系统回填client的连接信息（ip、port、protocol）
     socklen_t client_len = sizeof(clientaddr);
@@ -136,7 +150,6 @@ int StartServer(void)
     {
         pthread_t id;
         clientfd = (int *)malloc(sizeof(int));
-        //accept函数从listen函数维护的监听队列里取一个客户连接请求处理
         *clientfd = accept(serverfd, (struct sockaddr*)&clientaddr, &client_len);
         
         if(*clientfd!=-1){
@@ -158,7 +171,7 @@ int StartServer(void)
 }
 
 /**
-  * @brief 从客户端接受数据
+  * @brief 客户线程处理函数
   * @param 客户端socket文件描述符
   * @retval None
   * @detail None
@@ -201,7 +214,7 @@ void *pthread_func(void *fd){
         else if(strncmp(recv_buf, "/file", strlen("/file")) == 0)
         {
             recv_file(client_sockfd);
-            break;
+            continue;
         }
 
     	printf("%s say: ", searchbysockfd(&room1, client_sockfd)->name);
@@ -242,15 +255,29 @@ void recv_file(int fd)
 {
     //开始文件的读写操作
     char buf[MAXDATASIZE]={0}, path[MAXDATASIZE]={0};
+    int leng = 0;
+    File_info file_info;
     recv(fd,buf,sizeof(buf),0);
-    printf("recv is:%s\n",buf);
-    snprintf(path, MAXDATASIZE, "./recv_file/%s", buf);
+    memset(&file_info, 0, sizeof(file_info));
+    memcpy(&file_info, buf, sizeof(file_info));
+    printf("recv is:%s\n",file_info.filename);
+    printf("file size is %d\n", file_info.filesize);
+    snprintf(path, MAXDATASIZE, "./recv_file/%s", file_info.filename);
     printf("path is:%s\n",path);
     memset(buf,0x00,sizeof(buf));
     int filefd = open(path, O_WRONLY |O_CREAT |O_TRUNC, 0777);
+    int remain_len = file_info.filesize;
     while(1)
     {
-        int leng = recv(fd,buf,sizeof(buf),0);
+        if(remain_len >= MAXDATASIZE){
+            leng = recv(fd, buf, MAXDATASIZE, 0);
+            remain_len -= leng;
+        }
+        else{
+            leng = recv(fd, buf, remain_len, 0);
+            remain_len -= leng;
+        }
+
         if(leng == 0)
         {
             printf("Opposite have close the socket.\n"); 
@@ -261,8 +288,11 @@ void recv_file(int fd)
         if(leng == -1 )
             break; //表示出现了严重的错误
         write(filefd,buf,leng);                                
-    }  
-    //若文件的读写已经结束,则关闭文件描述符
+        if(remain_len == 0){
+            printf("file received\n");
+            break;
+        }
+    }
     close(filefd);
 }
 
